@@ -1,0 +1,10 @@
+digraph UnitedStatesOfMachine {
+    S50 [label = "ENTRY"];
+    S51 [label = "Intermediate"];
+    S52 [label = "Final"];
+
+    S50 -> S51 [label = "moveToIntermediate"];
+    S51 -> S52 [label = "moveToFinal"];
+    S52 -> S52 [label = "repeatFinal"];
+
+}
