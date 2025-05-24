@@ -1,43 +1,26 @@
-// See README.md for license details.
-
 package fsm
 
 import chisel3._
+import chisel3.util
 import scala.io.Source
 import scala.util.matching.Regex
-case class State(name: String, label: String)
-case class Transition(source: State, dest: State, label: String)
-class FSM(val filePath: String) { // extends Module
-  val stateRegExp : Regex = raw"\s*(.*)\s*\[label\s\=\s\"(.*)\"\]\;".r
-  val transitionRegExp : Regex = raw"\s*(.*)\-\>\s*(.*)\s*\[label\s\=\s\"(.*)\"\]\;".r
-  val statesTransitions : (Seq[Transition], Seq[State]) = Source.fromFile(filePath).getLines().foldLeft((Seq.empty[Transition], Seq.empty[State]))
-  { 
-    case ((accTransitions, accStates), line) => 
-      if (line contains "->") {
-        line match {
-          case transitionRegExp(sourceStateStr, destStateStr, transitionLabel) => {
-            val sourceDestStateTuple : (Option[State], Option[State]) = accStates.foldLeft((Option.empty[State], Option.empty[State])) {
-              case ((foundSrcState, foundDstState), currState) => {
-                if ((currState.name == sourceStateStr) && (currState.name == destStateStr)) {
-                  (Some(currState), Some(currState))
-                } else if (currState.name == sourceStateStr) {
-                  (Some(currState), foundDstState)
-                } else if (currState.name == destStateStr) {
-                  (foundSrcState, Some(currState))
-                } else {
-                  (foundSrcState, foundDstState)
-                }
-              }
-            }
-            (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel), accStates)
-          }
-          case _ => (accTransitions, accStates)
-        }
-      } else {
-          line match {
-            case stateRegExp(name, label) => (accTransitions, accStates :+ new State(name, label))
-            case _ => (accTransitions, accStates)
-          }
-      }
+
+class FSM(val fsm_graph: FSMGraph) extends Module {
+  val transition_indices : Seq[(Int, Int, String)] = fsm_graph.statesTransitions._1.map (transition => {
+    val srcIndex = fsm_graph.statesTransitions._2.indexOf(transition.source)
+    val destIndex = fsm_graph.statesTransitions._2.indexOf(transition.dest)
+    (srcIndex, destIndex, transition.label)
+  })
+  val io = IO(new Bundle {
+      val in  = Input(Vec(fsm_graph.statesTransitions._1.length, Bool()))
+      val out = Output(UInt(util.log2Ceil(fsm_graph.statesTransitions._2.length).W))
+  })
+  val intState = RegInit(0.U(util.log2Ceil(fsm_graph.statesTransitions._2.length).W))
+  for (i <- 0 until fsm_graph.statesTransitions._1.length) {
+    when (io.in(i) && intState === transition_indices(i)._1.U) {
+      intState := transition_indices(i)._2.U
+      printf(f"Took the transition ${transition_indices(i)._3}\n")
+    }
   }
+  io.out := intState
 }
