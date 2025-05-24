@@ -9,9 +9,14 @@ import org.scalatest.flatspec.AnyFlatSpec
 import chisel3.experimental.BundleLiterals._
 
 class FSMSpec extends AnyFlatSpec with ChiselScalatestTester {
-  it should "read the dotfile in, and process the states correctly" in {
+  it should "read the dotfile in, and process the states/transitions correctly" in {
     val fsm_test = new fsm.FSM("/home/arjun/coursecode/state-machine-228/src/test/scala/fsm/sample.dot")
-    assert(fsm_test.states.length == 3)
+    assert(fsm_test.statesTransitions._2(0).label == "ENTRY")
+    assert(fsm_test.statesTransitions._2(1).label == "Intermediate")
+    assert(fsm_test.statesTransitions._2(2).label == "Final")
+    assert(fsm_test.statesTransitions._1(0).label == "moveToIntermediate")
+    assert(fsm_test.statesTransitions._1(1).label == "moveToFinal")
+    assert(fsm_test.statesTransitions._1(2).label == "repeatFinal")
   }
 }
 
