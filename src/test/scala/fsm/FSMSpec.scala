@@ -10,7 +10,7 @@ import chisel3.experimental.BundleLiterals._
 
 class FSMSpec extends AnyFlatSpec with ChiselScalatestTester {
   it should "read the dotfile in, and process the states/transitions correctly" in {
-    val fsm_test = new fsm.FSM("/home/arjun/coursecode/state-machine-228/src/test/scala/fsm/sample.dot")
+    val fsm_test = new fsm.FSM("src/test/scala/fsm/sample.dot")
     assert(fsm_test.statesTransitions._2(0).label == "ENTRY")
     assert(fsm_test.statesTransitions._2(1).label == "Intermediate")
     assert(fsm_test.statesTransitions._2(2).label == "Final")
