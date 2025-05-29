@@ -11,9 +11,7 @@ trait ChiselASTELem {
     val closeLine : String
     def generate(filePath: os.Path) : Unit = {
         os.write.append(filePath, openLine)
-        if (child == None) {
-            return
-        } else {
+        if (child != None) {
             child.get.foreach(elem => elem.generate(filePath))
         }
         os.write.append(filePath, closeLine)
@@ -23,23 +21,23 @@ class StaticTopElem extends ChiselASTELem {
     val openLine: String = "package fsm\nimport chisel3._\nimport chisel3.util\nimport scala.io.Source\nimport scala.util.matching.Regex\n"
     val parent : Option[ChiselASTELem] = None
     val child = None
-    val closeLine: String = ""
+    val closeLine: String = "\n"
 }
 class TopElem(val states: Seq[State]) extends ChiselASTELem {
-    var openLineTest: String = "class FSMGen extends Module {\nobject FSMEnum extends ChiselEnum {\nval " + states.foldLeft(""){case (acc, x) => {
+    var openLineTest: String = "object FSMEnum extends ChiselEnum {\n\t\tval " + states.foldLeft(""){case (acc, x) => {
         acc + x.label + ", "
-    }} + " = Value\n}"
+    }}.stripSuffix(", ") + " = Value\n}\n class FSMGen extends Module {\n\tswitch(state) {\n"
     val openLine: String =  openLineTest
     val parent : Option[ChiselASTELem] = None
     val child = Some(new ArrayBuffer(states.length))
-    val closeLine : String = "}"
+    val closeLine : String = "\t\n}\n}\n"
 }
 class StateElem(val parent_arg: ChiselASTELem, val state_arg: State) extends ChiselASTELem {
     val state : State = state_arg
-    val openLine : String = s"when (state === FSMEnum.${state.label})\n"
+    val openLine : String = s"\t is(FSMEnum.${state.label}) {\n"
     val parent : Option[ChiselASTELem] = Some(parent_arg)
     val child : Option[ArrayBuffer[ChiselASTELem]] = None
-    val closeLine : String = "}"
+    val closeLine : String = "\t\t\n}\n"
 }
 
 class FSMCompiler {
