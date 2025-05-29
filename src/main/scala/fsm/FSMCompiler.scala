@@ -18,7 +18,7 @@ trait ChiselASTELem {
     }
 }
 class StaticTopElem extends ChiselASTELem {
-    val openLine: String = "package fsm\nimport chisel3._\nimport chisel3.util\nimport scala.io.Source\nimport scala.util.matching.Regex\n"
+    val openLine: String = "package fsm\nimport chisel3._\nimport chisel3.util._\n"
     val parent : Option[ChiselASTELem] = None
     val child = None
     val closeLine: String = "\n"
@@ -26,7 +26,7 @@ class StaticTopElem extends ChiselASTELem {
 class TopElem(val states: Seq[State]) extends ChiselASTELem {
     var openLineTest: String = "object FSMEnum extends ChiselEnum {\n\t\tval " + states.foldLeft(""){case (acc, x) => {
         acc + x.label + ", "
-    }}.stripSuffix(", ") + " = Value\n}\n class FSMGen extends Module {\n\tswitch(state) {\n"
+    }}.stripSuffix(", ") + " = Value\n}\n class FSMGen extends Module {\n\tval state = RegInit(FSMEnum." + states(0).label + ")\n\tswitch(state) {\n"
     val openLine: String =  openLineTest
     val parent : Option[ChiselASTELem] = None
     val child = Some(new ArrayBuffer(states.length))
