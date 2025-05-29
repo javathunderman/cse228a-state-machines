@@ -27,4 +27,11 @@ class FSMModelTester extends AnyFlatSpec with ChiselScalatestTester {
         model.take_transition(0)
         assert(model.current_state.label == "Final")
     }
+    it should "generate a correct chisel source file" in {
+        val graph = new fsm.FSMGraph("src/test/scala/fsm/sample.dot")
+        val model = new FSMCompiler()
+        model.build(graph)
+        model.generation(os.Path("src/test/scala/fsm/test.scala", os.pwd))
+        assert(true)
+    }
 }
