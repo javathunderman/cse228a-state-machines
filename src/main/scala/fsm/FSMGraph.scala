@@ -34,7 +34,13 @@ case class FSMGraph(val filePath: String) {
                 }
               }
             }
-            (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel), accStates)
+            if (reservedKeywords.find(_ == transitionLabel) == None) {
+              (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel), accStates)
+            } else {
+              println("illegal transition name")
+              (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel + "_"), accStates)
+            }
+            
           }
           case _ => (accTransitions, accStates)
         }
