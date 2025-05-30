@@ -6,9 +6,13 @@ import chisel3._
 import chisel3.util
 import scala.io.Source
 import scala.util.matching.Regex
+
 case class State(name: String, label: String)
 case class Transition(source: State, dest: State, label: String)
 case class FSMGraph(val filePath: String) {
+  val st = scala.reflect.runtime.universe.asInstanceOf[scala.reflect.internal.SymbolTable]
+  val reservedKeywords = st.nme.keywords.map(x => x.toString())
+
   val stateRegExp : Regex = raw"\s*(.*)\s*\[label\s\=\s\"(.*)\"\]\;".r
   val transitionRegExp : Regex = raw"\s*(.*)\-\>\s*(.*)\s*\[label\s\=\s\"(.*)\"\]\;".r
   val statesTransitions : (Seq[Transition], Seq[State]) = Source.fromFile(filePath).getLines().foldLeft((Seq.empty[Transition], Seq.empty[State]))
@@ -36,7 +40,14 @@ case class FSMGraph(val filePath: String) {
         }
       } else {
           line match {
-            case stateRegExp(name, label) => (accTransitions, accStates :+ new State(name, label))
+            case stateRegExp(name, label) => {
+              if (reservedKeywords.find(_ == label) == None) {
+                (accTransitions, accStates :+ new State(name, label))
+              } else {
+                println("illegal state name")
+                (accTransitions, accStates :+ new State(name, label + "_"))
+              }
+            }
             case _ => (accTransitions, accStates)
           }
       }
