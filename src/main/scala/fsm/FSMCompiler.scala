@@ -1,14 +1,13 @@
 package fsm
 
 import java.io.{File, FileWriter, Writer}
-
 import scala.collection.mutable.ArrayBuffer
 
-trait ChiselASTELem {
-    val openLine : String
-    val parent : Option[ChiselASTELem]
-    val child : Option[ArrayBuffer[ChiselASTELem]]
-    val closeLine : String
+abstract class ASTElem {
+    val openLine : String = ""
+    val parent : Option[ASTElem] = None
+    val child : Option[ArrayBuffer[ASTElem]] = None
+    val closeLine : String = "\n"
     def generate(filePath: os.Path) : Unit = {
         os.write.append(filePath, openLine)
         if (child != None) {
@@ -17,63 +16,46 @@ trait ChiselASTELem {
         os.write.append(filePath, closeLine)
     }
 }
-class StaticTopElem extends ChiselASTELem {
-    val openLine = "package fsm\nimport chisel3._\nimport chisel3.util._\n"
-    val parent = None
-    val child = None
-    val closeLine = "\n"
+class StaticTopElem extends ASTElem {
+    override val openLine = "package fsm\nimport chisel3._\nimport chisel3.util._\n"
 }
 
-class StateEnumElem(val states: Seq[State]) extends ChiselASTELem {
-    val openLine = "object FSMState extends ChiselEnum {\n\t\tval " + states.foldLeft(""){case (acc, x) => {
-        acc + x.label + ", "
+class EnumElem(val st: Seq[String], val enumName: String) extends ASTElem {
+    override val openLine = "object " + enumName + " extends ChiselEnum {\n\tval " + st.foldLeft(""){case (acc, x) => {
+        acc + x + ", "
     }}.stripSuffix(", ") + " = Value\n}\n"
-    val parent = None
-    val child = None
-    val closeLine = "\n"
+    
 }
-
-class TransitionEnumElem(val transitions: Seq[Transition]) extends ChiselASTELem {
-    val openLine = "object FSMTransition extends ChiselEnum {\n\t\t val " + transitions.foldLeft(""){case (acc, x) => {
-        acc + x.label + ", "
-    }}.stripSuffix(", ") + " = Value\n}\n"
-    val parent = None
-    val child = None
-    val closeLine = "\n"
+class TopElem(val states: Seq[State], val transitions: Seq[Transition]) extends ASTElem {
+    override val openLine = "class FSMGen extends Module {\n\tval io = IO(new Bundle {\n\t\tval transition = Input(FSMTransition())\n\t})\n\tval state = RegInit(FSMState." + states(0).label + ")\n\tswitch(state) {\n"
+    override val child = Some(new ArrayBuffer(states.length))
+    override val closeLine = "\n\t}\n}\n"
 }
-class TopElem(val states: Seq[State], val transitions: Seq[Transition]) extends ChiselASTELem {
-       
-    val openLine = "class FSMGen extends Module {\n\tval state = RegInit(FSMState." + states(0).label + ")\n\tswitch(state) {\n"
-    val parent = None
-    val child = Some(new ArrayBuffer(states.length))
-    val closeLine = "\n\t}\n}\n"
-}
-class StateElem(val parent_arg: ChiselASTELem, val state_arg: State) extends ChiselASTELem {
+class StateElem(val parent_arg: ASTElem, val state_arg: State) extends ASTElem {
     val state = state_arg
-    val openLine = s"\t is(FSMState.${state.label}) {\n"
-    val parent = Some(parent_arg)
-    val child = Some(new ArrayBuffer(0))
-    val closeLine = "\n\t}\n"
+    override val openLine = s"\t is(FSMState.${state.label}) {\n"
+    override val parent = Some(parent_arg)
+    override val child = Some(new ArrayBuffer(0))
+    override val closeLine = "\t}\n"
 }
 
-class TransitionElem(val parent_arg: ChiselASTELem, val transition: Transition) extends ChiselASTELem {
-    val openLine = parent_arg match {
-        case _ : StateElem => "\t\twhen(io.transition === FSMTransition." + transition.label + ") {\n\t\t\t"
-        case _ : TransitionElem => "\t\t.elsewhen(io.transition === FSMTransition." + transition.label + ") {\n\t\t\t"
+class TransitionElem(val parent_arg: ASTElem, val transition: Transition) extends ASTElem {
+    override val openLine = parent_arg match {
+        case _ : StateElem => "\t\twhen(io.transition === FSMTransition." + transition.label + ") {\n\t\t\tstate := FSMState." + transition.dest.label
+        case _ : TransitionElem => "\t\t.elsewhen(io.transition === FSMTransition." + transition.label + ") {\n\t\t\tstate := FSMState." + transition.dest.label
         case _ => println("Illegal parent in syntax tree. Parsing bug?"); ""
     }
-    
-    val parent = Some(parent_arg)
-    val child = None
-    val closeLine = "\n\t\t}\n"
+    override val parent = Some(parent_arg)
+    override val child = None
+    override val closeLine = "\n\t\t}\n"
 }
 
 class FSMCompiler {
-    val ast = new ArrayBuffer[ChiselASTELem](2)
-    def build(graph: FSMGraph) : ArrayBuffer[ChiselASTELem] = {
+    val ast = new ArrayBuffer[ASTElem](2)
+    def build(graph: FSMGraph) : ArrayBuffer[ASTElem] = {
         ast.addOne(new StaticTopElem)
-        ast.addOne(new StateEnumElem(graph.statesTransitions._2))
-        ast.addOne(new TransitionEnumElem(graph.statesTransitions._1))
+        ast.addOne(new EnumElem(graph.statesTransitions._2.map(x => x.label), "FSMState"))
+        ast.addOne(new EnumElem(graph.statesTransitions._1.map(x => x.label), "FSMTransition"))
         val topElem = new TopElem(graph.statesTransitions._2, graph.statesTransitions._1)
         
         for (i <- 0 until graph.statesTransitions._2.length) {
@@ -97,5 +79,4 @@ class FSMCompiler {
             ast(i).generate(filePath)
         }
     }
-    // todo: build tree of program to make the generation less hacky
 }
