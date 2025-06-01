@@ -6,8 +6,13 @@ import chisel3._
 import chisel3.util
 import scala.io.Source
 import scala.util.matching.Regex
+object StateType extends Enumeration {
+  type StateType = Value
+  val EntryState, EndState, StandardState = Value
+}
+import StateType._
 
-case class State(name: String, label: String)
+case class State(name: String, label: String, state_type: StateType)
 case class Transition(source: State, dest: State, label: String)
 case class FSMGraph(val filePath: String) {
   val st = scala.reflect.runtime.universe.asInstanceOf[scala.reflect.internal.SymbolTable]
@@ -37,6 +42,7 @@ case class FSMGraph(val filePath: String) {
             if (reservedKeywords.find(_ == transitionLabel) == None) {
               (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel), accStates)
             } else {
+              // try to correct a transition name if it's a reserved keyword in scala
               println("illegal transition name")
               (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel + "_"), accStates)
             }
@@ -47,12 +53,17 @@ case class FSMGraph(val filePath: String) {
       } else {
           line match {
             case stateRegExp(name, label) => {
-              if (reservedKeywords.find(_ == label) == None) {
-                (accTransitions, accStates :+ new State(name, label))
-              } else {
-                println("illegal state name")
-                (accTransitions, accStates :+ new State(name, label + "_"))
-              }
+              (accTransitions, accStates :+ new State(name, 
+                if (reservedKeywords.find(_ == label) == None) 
+                  label 
+                else 
+                  label + "_", 
+                label.toLowerCase() match {
+                  case "final" => StateType.EndState
+                  case "entry" => StateType.EntryState
+                  case _ => StateType.StandardState
+                }
+              ))
             }
             case _ => (accTransitions, accStates)
           }

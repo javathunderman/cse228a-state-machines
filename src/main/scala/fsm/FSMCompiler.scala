@@ -59,28 +59,39 @@ class FSMCompiler {
         if (unreachable_states.size > 0) {
             println(s"Warning: Unreachable states ${unreachable_states}")
         }
+        // emit the imports
         ast.addOne(new StaticTopElem)
+
+        // create the enum types for states and transitions
         ast.addOne(new EnumElem(graph.statesTransitions._2.map(x => x.label), "FSMState"))
         ast.addOne(new EnumElem(graph.statesTransitions._1.map(x => x.label), "FSMTransition"))
+        
+        // create the module type
+        // all states/transitions are within this element of the AST
         val topElem = new TopElem(graph.statesTransitions._2, graph.statesTransitions._1)
         
         for (i <- 0 until graph.statesTransitions._2.length) {
             val state_elem = new StateElem(topElem, graph.statesTransitions._2(i))
             val transition_elem = graph.statesTransitions._1.filter(x => x.source == graph.statesTransitions._2(i)).foldLeft(Seq.empty[TransitionElem]) {case (acc, x) => {
+                // handle difference between when and elsewhen for multiple possible transitions out of a state
                 if (acc.length > 0) {
                     acc :+ new TransitionElem(acc(0), x)
                 } else {
                     acc :+ new TransitionElem(state_elem, x)
                 }
             }}
+
+            // add all of the transition AST elements to a source state element
             if (transition_elem.length > 0) {
                 state_elem.child.get.addAll(transition_elem)
             }
+            // add the state to the tree
             topElem.child.get.addOne(state_elem)
         }
         ast.addOne(topElem)
     }
     def generation(filePath: os.Path) = {
+        // rely on polymorphism to generate the right outputs
         for (i <- 0 until ast.length) {
             ast(i).generate(filePath)
         }
