@@ -58,4 +58,36 @@ case class FSMGraph(val filePath: String) {
           }
       }
   }
+  def build_adj_list() = {
+    val adj_list_map = collection.mutable.HashMap[State, Seq[(String, State)]]()
+    for (i <- 0 until statesTransitions._2.length) {
+      adj_list_map(statesTransitions._2(i)) = statesTransitions._1.filter(x => x.source == statesTransitions._2(i)).foldLeft(Seq.empty[(String, State)])
+      {
+        case (acc, x) => acc :+ (x.label, x.dest)
+      }
+    }
+    adj_list_map
+  }
+
+  def reachability_bfs(adj_list_map: collection.mutable.HashMap[State, Seq[(String, State)]]) : Set[State] = {
+    val visited = collection.mutable.Set.empty[State]
+    if (adj_list_map.size == 0) {
+      println("Need to populate graph first")
+      visited.toSet
+    } else {
+      val queue = collection.mutable.Queue.empty[State]
+      queue.addOne(statesTransitions._2(0))
+      visited.addOne(statesTransitions._2(0)) 
+      while (queue.size != 0) {
+        val u = queue.dequeue()
+        for (v <- adj_list_map(u)) {
+          if (!(visited.contains(v._2))) {
+            visited.addOne(v._2)
+            queue.addOne(v._2)
+          }
+        }
+      }
+      statesTransitions._2.toSet.diff(visited.toSet)
+    }
+  }
 }

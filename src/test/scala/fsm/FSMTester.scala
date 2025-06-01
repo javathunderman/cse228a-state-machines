@@ -7,7 +7,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 class FSMTester extends AnyFlatSpec with ChiselScalatestTester {
   it should "step through states in simple state machine" in {
-    val fsm_graph = FSMGraph("src/test/scala/fsm/sample.dot")
+    val fsm_graph = FSMGraph("src/test/scala/fsm/test-dotfiles/sample.dot")
     test(new FSM(fsm_graph)) { dut =>
       dut.io.in(0).poke(true.B)
       dut.io.in(1).poke(false.B)
@@ -29,7 +29,7 @@ class FSMTester extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
   it should "prevent illegal transitions in a simple state machine" in {
-    val fsm_graph = FSMGraph("src/test/scala/fsm/sample.dot")
+    val fsm_graph = FSMGraph("src/test/scala/fsm/test-dotfiles/sample.dot")
     test(new FSM(fsm_graph)) { dut =>
       dut.io.in(0).poke(true.B)
       dut.io.in(1).poke(false.B)
@@ -51,7 +51,7 @@ class FSMTester extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
   it should "handle multiple possible transitions" in {
-    val fsm_graph = FSMGraph("src/test/scala/fsm/sample_2.dot")
+    val fsm_graph = FSMGraph("src/test/scala/fsm/test-dotfiles/sample_2.dot")
     test(new FSM(fsm_graph)) { dut =>
       dut.io.in(0).poke(true.B)
       dut.io.in(1).poke(false.B)

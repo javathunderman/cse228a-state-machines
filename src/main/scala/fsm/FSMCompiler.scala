@@ -53,6 +53,12 @@ class TransitionElem(val parent_arg: ASTElem, val transition: Transition) extend
 class FSMCompiler {
     val ast = new ArrayBuffer[ASTElem](2)
     def build(graph: FSMGraph) : ArrayBuffer[ASTElem] = {
+        // Check that states are reachable - warn if they are not
+        val adj_list = graph.build_adj_list()
+        val unreachable_states = graph.reachability_bfs(adj_list)
+        if (unreachable_states.size > 0) {
+            println(s"Warning: Unreachable states ${unreachable_states}")
+        }
         ast.addOne(new StaticTopElem)
         ast.addOne(new EnumElem(graph.statesTransitions._2.map(x => x.label), "FSMState"))
         ast.addOne(new EnumElem(graph.statesTransitions._1.map(x => x.label), "FSMTransition"))
