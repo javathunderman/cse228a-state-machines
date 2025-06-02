@@ -50,7 +50,7 @@ class TransitionElem(val parent_arg: ASTElem, val transition: Transition) extend
     override val closeLine = "\n\t\t}\n"
 }
 
-class FSMCompiler {
+class FSMCompiler(val optimization: Boolean) {
     val ast = new ArrayBuffer[ASTElem](2)
     def build(graph: FSMGraph) : ArrayBuffer[ASTElem] = {
         // Check that states are reachable - warn if they are not
@@ -69,10 +69,11 @@ class FSMCompiler {
         // create the module type
         // all states/transitions are within this element of the AST
         val topElem = new TopElem(graph.statesTransitions._2, graph.statesTransitions._1)
-        
-        for (i <- 0 until graph.statesTransitions._2.length) {
-            val state_elem = new StateElem(topElem, graph.statesTransitions._2(i))
-            val transition_elem = graph.statesTransitions._1.filter(x => x.source == graph.statesTransitions._2(i)).foldLeft(Seq.empty[TransitionElem]) {case (acc, x) => {
+        // optionally prune out orphaned/unreachable states
+        val states_set = if (optimization) graph.statesTransitions._2.diff(unreachable_states.toSeq) else graph.statesTransitions._2
+        for (current_state <- states_set) {
+            val state_elem = new StateElem(topElem, current_state)
+            val transition_elem = graph.statesTransitions._1.filter(x => x.source == current_state).foldLeft(Seq.empty[TransitionElem]) {case (acc, x) => {
                 // handle difference between when and elsewhen for multiple possible transitions out of a state
                 if (acc.length > 0) {
                     acc :+ new TransitionElem(acc(0), x)
