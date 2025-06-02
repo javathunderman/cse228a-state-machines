@@ -342,5 +342,4 @@ hs_err_pid*
 .bloop/
 .metals/
 .vscode/
-project/
 outputs/

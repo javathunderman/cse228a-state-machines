@@ -1,7 +1,7 @@
 package fsm
 
 import java.io.{File, FileWriter, Writer}
-import scala.collection.mutable.ArrayBuffer
+import scala.collection.mutable.{HashMap, HashSet, ArrayBuffer}
 
 abstract class ASTElem {
     val openLine : String = ""
