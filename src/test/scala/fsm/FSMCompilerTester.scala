@@ -72,19 +72,4 @@ class FSMCompilerTester extends AnyFlatSpec with ChiselScalatestTester with Befo
         }
         model.generation(os.Path("src/test/scala/fsm/outputs/test.scala", os.pwd))
     }
-
-    // it should "step through the instantiated chisel design (unoptimized)" in {
-    //     test(new FSMGenUnopt()) { dut =>
-    //         dut.io.transition.poke(FSMGenUnoptTransition.moveToIntermediate)
-    //         dut.clock.step()
-    //         dut.io.state.expect(FSMGenUnoptState.Intermediate)
-    //     }
-    // }
-    // it should "step through the instantiated chisel design (optimized)" in {
-    //     test(new FSMGenOpt()) { dut =>
-    //         dut.io.transition.poke(FSMGenOptTransition.moveToIntermediate)
-    //         dut.clock.step()
-    //         dut.io.state.expect(FSMGenOptState.Intermediate)
-    //     }
-    // }
 }
