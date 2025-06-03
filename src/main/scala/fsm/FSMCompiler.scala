@@ -17,7 +17,7 @@ abstract class ASTElem {
     }
 }
 class StaticTopElem extends ASTElem {
-    override val openLine = "package fsm\nimport chisel3._\nimport chisel3.util._\n"
+    override val openLine = "package fsm.outputs\nimport chisel3._\nimport chisel3.util._\n"
 }
 
 class EnumElem(val st: Seq[String], val enumName: String) extends ASTElem {

@@ -1,0 +1,14 @@
+digraph Raccoon {
+    S50 [label = "ENTRY"];
+    S51 [label = "wander"];
+    S52 [label = "rummage"];
+    S53 [label = "eat"];
+
+    S50 -> S51 [label = "noNoise"];
+    S51 -> S50 [label = "noise"];
+    S51 -> S52 [label = "trash"];
+    S52 -> S53 [label = "food"];
+    S52 -> S50 [label = "noise"];
+    S53 -> S50 [label = "noise"];
+    S53 -> S51 [label = "noFood"];
+}

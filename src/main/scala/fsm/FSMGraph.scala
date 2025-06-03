@@ -86,8 +86,9 @@ case class FSMGraph(val filePath: String) {
     adj_list_map
   }
 
-  def bfs(adj_list_map: HashMap[State, Seq[(String, State)]], start: Option[State], dest: Option[State]) : Option[HashSet[State]] = {
+  def bfs(adj_list_map: HashMap[State, Seq[(String, State)]], start: Option[State], dest: Option[State]) : Option[Either[HashSet[State], HashMap[State, (String, State)]]] = {
     val visited = HashSet.empty[State]
+    val pred = HashMap.empty[State, (String, State)]
     if (adj_list_map.size == 0) {
       println("Need to populate graph first")
       None
@@ -106,14 +107,15 @@ case class FSMGraph(val filePath: String) {
           if (!(visited.contains(v._2))) {
             visited.addOne(v._2)
             queue.addOne(v._2)
+            pred.addOne(v._2, (v._1, u))
             if (dest != None && dest.get == v._2) {
-              return Some(visited)
+              return Some(Right(pred))
             }
           }
         }
       }
       if (dest == None) {
-        Some(visited)
+        Some(Left(visited))
       } else {
         None
       }
@@ -122,9 +124,33 @@ case class FSMGraph(val filePath: String) {
 
   def reachability_bfs(adj_list_map: HashMap[State, Seq[(String, State)]]) = {
     val visited_states = entry_states.foldLeft(HashSet.empty[State]){ case(acc, x) => {
-      acc.addAll(bfs(adj_list_map, Some(x), None).get)
+      val bfs_initial = bfs(adj_list_map, Some(x), None).get
+      bfs_initial match {
+        case Left(visited) => acc.addAll(visited)
+        case Right(predecessors) => acc
+      }
     }}
     statesTransitions._2.toSet.diff(visited_states)
   }
 
+  def path_bfs(adj_list_map: HashMap[State, Seq[(String, State)]]) = {
+    val paths = HashMap.empty[(State, State), Seq[String]]
+    for (entry_state <- entry_states) {
+      for (end_state <- final_states) {
+        val path_se = bfs(adj_list_map, Some(entry_state), Some(end_state)).get
+        path_se match {
+          case Left(visited) => println("error while obtaining paths?")
+          case Right(pred) => {
+            val path = Seq.empty[String]
+            var current_state = end_state
+            while (current_state != entry_state) {
+              path :+ pred(current_state)._1
+              current_state = pred(current_state)._2
+            }
+            paths((entry_state, end_state)) = path
+          }
+        }
+      }
+    }
+  }
 }
