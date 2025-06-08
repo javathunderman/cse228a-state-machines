@@ -74,4 +74,7 @@ class FSMCompilerTester extends AnyFlatSpec with ChiselScalatestTester {
     it should "generate a chisel source file of the raccoon FSM without errors" in {
         default_test("src/test/scala/fsm/test-dotfiles/raccoon.dot", 0, true)
     }
+    it should "generate a chisel source file of the host FSM without errors" in {
+        default_test("src/test/scala/fsm/test-dotfiles/host.dot", 0, false)
+    }
 }

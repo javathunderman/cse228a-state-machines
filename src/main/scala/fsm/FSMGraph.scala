@@ -22,8 +22,8 @@ case class FSMGraph(val filePath: String) {
   val final_states = HashSet.empty[State]
   val adj_list_map = HashMap.empty[State, Seq[(String, State)]]
 
-  val stateRegExp : Regex = raw"\s*(.*)\s*\[label\s\=\s\"(.*)\"\]\;".r
-  val transitionRegExp : Regex = raw"\s*(.*)\-\>\s*(.*)\s*\[label\s\=\s\"(.*)\"\]\;".r
+  val stateRegExp : Regex = raw"\s*(S\d+)\s?\[label\s?\=\s?\"(.*)\"\]\;".r.unanchored
+  val transitionRegExp : Regex = raw"\s*(S.*)\s?\-\>\s?(.*)\s*\[label\s?\=\s?\"(.*)\"\]\;".r.unanchored
   val statesTransitions : (Seq[Transition], Seq[State]) = Source.fromFile(filePath).getLines().foldLeft((Seq.empty[Transition], Seq.empty[State]))
   { 
     case ((accTransitions, accStates), line) => 
@@ -32,23 +32,27 @@ case class FSMGraph(val filePath: String) {
           case transitionRegExp(sourceStateStr, destStateStr, transitionLabel) => {
             val sourceDestStateTuple : (Option[State], Option[State]) = accStates.foldLeft((Option.empty[State], Option.empty[State])) {
               case ((foundSrcState, foundDstState), currState) => {
-                if ((currState.name == sourceStateStr) && (currState.name == destStateStr)) {
+                if ((currState.name == sourceStateStr.strip()) && (currState.name == destStateStr.strip())) {
                   (Some(currState), Some(currState))
-                } else if (currState.name == sourceStateStr) {
+                } else if (currState.name == sourceStateStr.strip()) {
                   (Some(currState), foundDstState)
-                } else if (currState.name == destStateStr) {
+                } else if (currState.name == destStateStr.strip()) {
                   (foundSrcState, Some(currState))
                 } else {
                   (foundSrcState, foundDstState)
                 }
               }
             }
-            if (reservedKeywords.find(_ == transitionLabel) == None) {
-              (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel), accStates)
+            if (reservedKeywords.find(_ == transitionLabel) == None && transitionLabel != " ") {
+              (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel.replace(" ", "")), accStates)
             } else {
               // try to correct a transition name if it's a reserved keyword in scala
               println("illegal transition name")
-              (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel + "_"), accStates)
+              if (transitionLabel == " ") {
+                (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, s"${sourceDestStateTuple._1.get.name}to${sourceDestStateTuple._2.get.name}"), accStates)
+              } else {
+                (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel.replace(" ", "") + "_"), accStates)
+              }
             }
             
           }
@@ -57,16 +61,17 @@ case class FSMGraph(val filePath: String) {
       } else {
           line match {
             case stateRegExp(name, label) => {
-              (accTransitions, accStates :+ new State(name, 
+              (accTransitions, accStates :+ new State(name.strip(), 
                 if (reservedKeywords.find(_ == label) == None) 
-                  label 
+                  label.replace(" ", "")
                 else 
-                  label + "_", 
-                label.toLowerCase() match {
-                  case "final" => StateType.EndState
-                  case "entry" => StateType.EntryState
-                  case _ => StateType.StandardState
-                }
+                  label.replace(" ", "") + "_", 
+                if (label.toLowerCase().contains("final"))
+                  StateType.EndState
+                else if (label.toLowerCase().contains("entry"))
+                  StateType.EntryState
+                else
+                  StateType.StandardState
               ))
             }
             case _ => (accTransitions, accStates)
