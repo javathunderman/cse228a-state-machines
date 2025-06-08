@@ -64,8 +64,8 @@ class FSMCompiler(val optimization: Boolean, module_name: String) {
         val state_enum_label = module_name + "State"
         val transition_enum_label = module_name + "Transition"
         // create the enum types for states and transitions
-        ast.addOne(new EnumElem(graph.statesTransitions._2.map(x => x.label), state_enum_label))
-        ast.addOne(new EnumElem(graph.statesTransitions._1.map(x => x.label), transition_enum_label))
+        ast.addOne(new EnumElem(graph.statesTransitions._2.map(x => x.label).distinct, state_enum_label))
+        ast.addOne(new EnumElem(graph.statesTransitions._1.map(x => x.label).distinct, transition_enum_label))
         
         // create the module type
         // all states/transitions are within this element of the AST

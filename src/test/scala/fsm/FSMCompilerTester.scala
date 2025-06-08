@@ -9,19 +9,24 @@ import java.io.File
 import scala.io.Source
 
 class FSMCompilerTester extends AnyFlatSpec with ChiselScalatestTester {
-    def default_test(filePath: String, unreachable_state_exp: Int, optimization: Boolean): Unit = {
+    def default_test(filePath: String, unreachable_state_exp: Int, optimization: Boolean, nameParam: Option[String]): Unit = {
       val graph = new fsm.FSMGraph(filePath)
       val adj_list = graph.build_adj_list()
       val unreachable_states = graph.reachability_bfs(adj_list)
+      val outPath = "src/test/scala/fsm/outputs/"
+      val fileName = nameParam match {
+        case Some(value) => value
+        case None => "test.scala"
+      }
       assert(unreachable_states.size == unreachable_state_exp)
       val model = new FSMCompiler(optimization, "FSMGen")
       model.build(graph)
-      val file = new File("src/test/scala/fsm/outputs/test.scala")
+      val file = new File(outPath + fileName)
       file.getParentFile().mkdirs()
       if (file.exists && file.isFile) {
           file.delete()
       }
-      model.generation(os.Path("src/test/scala/fsm/outputs/test.scala", os.pwd))
+      model.generation(os.Path(outPath + fileName, os.pwd))
     }
     it should "generate the [un]optimized state machines without error" in {
         val graph = new fsm.FSMGraph("src/test/scala/fsm/test-dotfiles/sample_3.dot")
@@ -62,19 +67,25 @@ class FSMCompilerTester extends AnyFlatSpec with ChiselScalatestTester {
         unopt_file.delete()
     }
     it should "generate a chisel source file (no optimization) without errors" in {
-        default_test("src/test/scala/fsm/test-dotfiles/sample.dot", 0, false)
+        default_test("src/test/scala/fsm/test-dotfiles/sample.dot", 0, false, None)
     }
     
     it should "generate a chisel source file (no optimization) without errors and detect unreachable states" in {
-        default_test("src/test/scala/fsm/test-dotfiles/sample_3.dot", 1, false)
+        default_test("src/test/scala/fsm/test-dotfiles/sample_3.dot", 1, false, None)
     }
     it should "generate a chisel source file (optimized) without errors and detect unreachable states" in {
-        default_test("src/test/scala/fsm/test-dotfiles/sample_3.dot", 1, true)
+        default_test("src/test/scala/fsm/test-dotfiles/sample_3.dot", 1, true, None)
     }
     it should "generate a chisel source file of the raccoon FSM without errors" in {
-        default_test("src/test/scala/fsm/test-dotfiles/raccoon.dot", 0, true)
+        default_test("src/test/scala/fsm/test-dotfiles/raccoon.dot", 0, true, None)
     }
     it should "generate a chisel source file of the host FSM without errors" in {
-        default_test("src/test/scala/fsm/test-dotfiles/host.dot", 0, false)
+        default_test("src/test/scala/fsm/test-dotfiles/host.dot", 0, false, Some("host_fsm.scala"))
+        val sm_file = new File("src/test/scala/fsm/outputs/host_fsm.scala")
+        val output_sm = Source.fromFile("src/test/scala/fsm/outputs/host_fsm.scala").getLines().toArray
+        val output_sm_default = Source.fromFile("src/test/scala/fsm/outputs/host_fsm_default.scala").getLines().toArray
+        assert(output_sm.sameElements(output_sm_default))
+        sm_file.delete()
+        
     }
 }
