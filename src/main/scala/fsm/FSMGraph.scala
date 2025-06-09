@@ -160,4 +160,18 @@ case class FSMGraph(val filePath: String) {
     }
     paths
   }
+
+  def dead_state_detection(adj_list_map: HashMap[State, Seq[(String, State)]]) : Set[State] = {
+    val nonFinalStates = statesTransitions._2.toSet.diff(final_states) // get all the non-final states we could be stuck in
+    val deadStates = nonFinalStates.foldLeft(Set.empty[State]){
+      case (acc, x) => {
+        if (adj_list_map(x).length == 0) { // no out-edges
+          acc + x
+        } else {
+          acc
+        }
+      }
+    }
+    deadStates.diff(reachability_bfs(adj_list_map))
+  }
 }

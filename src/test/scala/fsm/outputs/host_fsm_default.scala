@@ -12,130 +12,130 @@ object HostGenTransition extends ChiselEnum {
 
 class HostGen extends Module {
 	val io = IO(new Bundle {
-		val transition = Input(FSMGenTransition())
-		val state = Output(FSMGenState())
+		val transition = Input(HostGenTransition())
+		val state = Output(HostGenState())
 	})
-	val state = RegInit(FSMGenState.ENTRY)
+	val state = RegInit(HostGenState.ENTRY)
 	switch(state) {
-	 is(FSMGenState.ENTRY) {
-		when(io.transition === FSMGenTransition.S10toS11) {
-			state := FSMGenState.EstablishedCommunication
+	 is(HostGenState.ENTRY) {
+		when(io.transition === HostGenTransition.S10toS11) {
+			state := HostGenState.EstablishedCommunication
 		}
 	}
-	 is(FSMGenState.EstablishedCommunication) {
-		when(io.transition === FSMGenTransition.INIT) {
-			state := FSMGenState.Standby
+	 is(HostGenState.EstablishedCommunication) {
+		when(io.transition === HostGenTransition.INIT) {
+			state := HostGenState.Standby
 		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
-		}
-	}
-	 is(FSMGenState.Standby) {
-		when(io.transition === FSMGenTransition.EnterService) {
-			state := FSMGenState.Service
-		}
-		.elsewhen(io.transition === FSMGenTransition.StartHV) {
-			state := FSMGenState.HVPowerOn
-		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
 		}
 	}
-	 is(FSMGenState.Service) {
-		when(io.transition === FSMGenTransition.ReverttoStandby) {
-			state := FSMGenState.Standby
+	 is(HostGenState.Standby) {
+		when(io.transition === HostGenTransition.EnterService) {
+			state := HostGenState.Service
 		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
+		.elsewhen(io.transition === HostGenTransition.StartHV) {
+			state := HostGenState.HVPowerOn
 		}
-	}
-	 is(FSMGenState.HVPowerOn) {
-		when(io.transition === FSMGenTransition.ToInitialize) {
-			state := FSMGenState.Initialize
-		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
 		}
 	}
-	 is(FSMGenState.HVTesting) {
-		when(io.transition === FSMGenTransition.ToInitialize) {
-			state := FSMGenState.Initialize
+	 is(HostGenState.Service) {
+		when(io.transition === HostGenTransition.ReverttoStandby) {
+			state := HostGenState.Standby
 		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
-		}
-	}
-	 is(FSMGenState.Initialize) {
-		when(io.transition === FSMGenTransition.ToHVTesting) {
-			state := FSMGenState.HVTesting
-		}
-		.elsewhen(io.transition === FSMGenTransition.StartPressurizing) {
-			state := FSMGenState.Pressurize
-		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
 		}
 	}
-	 is(FSMGenState.Pressurize) {
-		when(io.transition === FSMGenTransition.MainLineat3000PSI) {
-			state := FSMGenState.SteeringAdjustments
+	 is(HostGenState.HVPowerOn) {
+		when(io.transition === HostGenTransition.ToInitialize) {
+			state := HostGenState.Initialize
 		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
-		}
-	}
-	 is(FSMGenState.SteeringAdjustments) {
-		when(io.transition === FSMGenTransition.BeginBorePhaseI) {
-			state := FSMGenState.BorePhaseI
-		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
 		}
 	}
-	 is(FSMGenState.BorePhaseI) {
-		when(io.transition === FSMGenTransition.Jacksat1foot) {
-			state := FSMGenState.BorePhaseII
+	 is(HostGenState.HVTesting) {
+		when(io.transition === HostGenTransition.ToInitialize) {
+			state := HostGenState.Initialize
 		}
-		.elsewhen(io.transition === FSMGenTransition.PauseSystem) {
-			state := FSMGenState.SystemPause
-		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
 		}
 	}
-	 is(FSMGenState.BorePhaseII) {
-		when(io.transition === FSMGenTransition.PauseSystem) {
-			state := FSMGenState.SystemPause
+	 is(HostGenState.Initialize) {
+		when(io.transition === HostGenTransition.ToHVTesting) {
+			state := HostGenState.HVTesting
 		}
-		.elsewhen(io.transition === FSMGenTransition.ActuatorsFullyExtended) {
-			state := FSMGenState.FinalRoutineStop
+		.elsewhen(io.transition === HostGenTransition.StartPressurizing) {
+			state := HostGenState.Pressurize
 		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
-		}
-	}
-	 is(FSMGenState.SystemPause) {
-		when(io.transition === FSMGenTransition.ResumeBoringPhaseI) {
-			state := FSMGenState.BorePhaseI
-		}
-		.elsewhen(io.transition === FSMGenTransition.ResumeBoringPhaseII) {
-			state := FSMGenState.BorePhaseII
-		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
 		}
 	}
-	 is(FSMGenState.FinalRoutineStop) {
-		when(io.transition === FSMGenTransition.StartHV) {
-			state := FSMGenState.HVPowerOn
+	 is(HostGenState.Pressurize) {
+		when(io.transition === HostGenTransition.MainLineat3000PSI) {
+			state := HostGenState.SteeringAdjustments
 		}
-		.elsewhen(io.transition === FSMGenTransition.FaultEncountered) {
-			state := FSMGenState.FinalESTOP
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
 		}
 	}
-	 is(FSMGenState.FinalESTOP) {
-		when(io.transition === FSMGenTransition.EnterService) {
-			state := FSMGenState.Service
+	 is(HostGenState.SteeringAdjustments) {
+		when(io.transition === HostGenTransition.BeginBorePhaseI) {
+			state := HostGenState.BorePhaseI
+		}
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
+		}
+	}
+	 is(HostGenState.BorePhaseI) {
+		when(io.transition === HostGenTransition.Jacksat1foot) {
+			state := HostGenState.BorePhaseII
+		}
+		.elsewhen(io.transition === HostGenTransition.PauseSystem) {
+			state := HostGenState.SystemPause
+		}
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
+		}
+	}
+	 is(HostGenState.BorePhaseII) {
+		when(io.transition === HostGenTransition.PauseSystem) {
+			state := HostGenState.SystemPause
+		}
+		.elsewhen(io.transition === HostGenTransition.ActuatorsFullyExtended) {
+			state := HostGenState.FinalRoutineStop
+		}
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
+		}
+	}
+	 is(HostGenState.SystemPause) {
+		when(io.transition === HostGenTransition.ResumeBoringPhaseI) {
+			state := HostGenState.BorePhaseI
+		}
+		.elsewhen(io.transition === HostGenTransition.ResumeBoringPhaseII) {
+			state := HostGenState.BorePhaseII
+		}
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
+		}
+	}
+	 is(HostGenState.FinalRoutineStop) {
+		when(io.transition === HostGenTransition.StartHV) {
+			state := HostGenState.HVPowerOn
+		}
+		.elsewhen(io.transition === HostGenTransition.FaultEncountered) {
+			state := HostGenState.FinalESTOP
+		}
+	}
+	 is(HostGenState.FinalESTOP) {
+		when(io.transition === HostGenTransition.EnterService) {
+			state := HostGenState.Service
 		}
 	}
 

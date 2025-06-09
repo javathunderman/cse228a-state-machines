@@ -9,24 +9,23 @@ import java.io.File
 import scala.io.Source
 
 class FSMCompilerTester extends AnyFlatSpec with ChiselScalatestTester {
-    def default_test(filePath: String, unreachable_state_exp: Int, optimization: Boolean, nameParam: Option[String]): Unit = {
+    def default_test(filePath: String, unreachable_state_exp: Int, dead_state_exp: Int, optimization: Boolean, nameParam: Option[String], fsmName: Option[String]): Unit = {
       val graph = new fsm.FSMGraph(filePath)
       val adj_list = graph.build_adj_list()
       val unreachable_states = graph.reachability_bfs(adj_list)
+      val dead_states = graph.dead_state_detection(adj_list)
       val outPath = "src/test/scala/fsm/outputs/"
-      val fileName = nameParam match {
-        case Some(value) => value
-        case None => "test.scala"
-      }
       assert(unreachable_states.size == unreachable_state_exp)
-      val model = new FSMCompiler(optimization, "FSMGen")
+      assert(dead_states.size == dead_state_exp)
+      val model = new FSMCompiler(optimization, fsmName.getOrElse("FSMGen"))
       model.build(graph)
-      val file = new File(outPath + fileName)
+      val file = new File(outPath + nameParam.getOrElse("test.scala"))
       file.getParentFile().mkdirs()
       if (file.exists && file.isFile) {
           file.delete()
       }
-      model.generation(os.Path(outPath + fileName, os.pwd))
+      model.generation(os.Path(outPath + nameParam.getOrElse("test.scala"), os.pwd))
+      file.deleteOnExit()
     }
     def unopt_opt_test(dotFilePath: String, outFileName: String, unreachable_state_count: Integer, templateName: String): Boolean = {
       val graph = new fsm.FSMGraph(dotFilePath)
@@ -66,24 +65,23 @@ class FSMCompilerTester extends AnyFlatSpec with ChiselScalatestTester {
       opt_file.delete()
       unopt_file.delete()
     }
-    it should "generate the [un]optimized state machines without error" in {
+    it should "generate the [un]optimized state machines without errors" in {
         unopt_opt_test("src/test/scala/fsm/test-dotfiles/sample_3.dot", "test", 1, "FSMGen")
     }
     it should "generate a chisel source file (no optimization) without errors" in {
-        default_test("src/test/scala/fsm/test-dotfiles/sample.dot", 0, false, None)
+        default_test("src/test/scala/fsm/test-dotfiles/sample.dot", 0, 0, false, None, None)
     }
-    
     it should "generate a chisel source file (no optimization) without errors and detect unreachable states" in {
-        default_test("src/test/scala/fsm/test-dotfiles/sample_3.dot", 1, false, None)
+        default_test("src/test/scala/fsm/test-dotfiles/sample_3.dot", 1, 1, false, None, None)
     }
     it should "generate a chisel source file (optimized) without errors and detect unreachable states" in {
-        default_test("src/test/scala/fsm/test-dotfiles/sample_3.dot", 1, true, None)
+        default_test("src/test/scala/fsm/test-dotfiles/sample_3.dot", 1, 1, true, None, None)
     }
     it should "generate a chisel source file of the raccoon FSM without errors" in {
-        default_test("src/test/scala/fsm/test-dotfiles/raccoon.dot", 0, true, None)
+        default_test("src/test/scala/fsm/test-dotfiles/raccoon.dot", 0, 0, true, None, None)
     }
     it should "generate a chisel source file of the host FSM without errors" in {
-        default_test("src/test/scala/fsm/test-dotfiles/host.dot", 0, false, Some("host_fsm.scala"))
+        default_test("src/test/scala/fsm/test-dotfiles/host.dot", 0, 0, false, Some("host_fsm.scala"), Some("HostGen"))
         val sm_file = new File("src/test/scala/fsm/outputs/host_fsm.scala")
         val output_sm = Source.fromFile("src/test/scala/fsm/outputs/host_fsm.scala").getLines().toArray
         val output_sm_default = Source.fromFile("src/test/scala/fsm/outputs/host_fsm_default.scala").getLines().toArray
@@ -92,5 +90,8 @@ class FSMCompilerTester extends AnyFlatSpec with ChiselScalatestTester {
     }
     it should "generate an optimized/unoptimized version of the host FSM without errors" in {
         unopt_opt_test("src/test/scala/fsm/test-dotfiles/host_extra_states.dot", "host_extra_states", 2, "HostGen")
+    }
+    it should "detect states that we could get stuck in" in {
+        default_test("src/test/scala/fsm/test-dotfiles/host_extra_states.dot", 2, 1, false, Some("host_extra_states_unopt.scala"), Some("HostGen"))
     }
 }
