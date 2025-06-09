@@ -2,15 +2,15 @@ package fsm.outputs
 import chisel3._
 import chisel3.util._
 
-object HostGenState extends ChiselEnum {
+object FSMGenState extends ChiselEnum {
 	val ENTRY, EstablishedCommunication, Standby, Service, HVPowerOn, HVTesting, Initialize, Pressurize, SteeringAdjustments, BorePhaseI, BorePhaseII, SystemPause, FinalRoutineStop, FinalESTOP = Value
 }
 
-object HostGenTransition extends ChiselEnum {
+object FSMGenTransition extends ChiselEnum {
 	val S10toS11, INIT, EnterService, ReverttoStandby, StartHV, ToInitialize, ToHVTesting, StartPressurizing, MainLineat3000PSI, BeginBorePhaseI, Jacksat1foot, PauseSystem, ResumeBoringPhaseI, ResumeBoringPhaseII, ActuatorsFullyExtended, FaultEncountered = Value
 }
 
-class HostGen extends Module {
+class FSMGen extends Module {
 	val io = IO(new Bundle {
 		val transition = Input(FSMGenTransition())
 		val state = Output(FSMGenState())

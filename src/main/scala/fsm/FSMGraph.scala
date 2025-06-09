@@ -139,17 +139,18 @@ case class FSMGraph(val filePath: String) {
   }
 
   def path_bfs(adj_list_map: HashMap[State, Seq[(String, State)]]) = {
-    val paths = HashMap.empty[(State, State), Seq[String]]
+    val paths = HashMap.empty[(State, State), Seq[(String, State)]]
     for (entry_state <- entry_states) {
       for (end_state <- final_states) {
-        val path_se = bfs(adj_list_map, Some(entry_state), Some(end_state)).get
+        val path_se = bfs(adj_list_map, Some(entry_state), Some(end_state))
         path_se match {
-          case Left(visited) => println("error while obtaining paths?")
-          case Right(pred) => {
-            val path = Seq.empty[String]
+          case None => println(s"no path between ${entry_state} and ${end_state}")
+          case Some(Left(visited)) => println("error while obtaining paths?")
+          case Some(Right(pred)) => {
+            val path = Seq.empty[(String, State)]
             var current_state = end_state
             while (current_state != entry_state) {
-              path :+ pred(current_state)._1
+              path :+ pred(current_state)
               current_state = pred(current_state)._2
             }
             paths((entry_state, end_state)) = path
@@ -157,5 +158,6 @@ case class FSMGraph(val filePath: String) {
         }
       }
     }
+    paths
   }
 }
