@@ -147,13 +147,13 @@ case class FSMGraph(val filePath: String) {
           case None => println(s"no path between ${entry_state} and ${end_state}")
           case Some(Left(visited)) => println("error while obtaining paths?")
           case Some(Right(pred)) => {
-            val path = Seq.empty[(String, State)]
+            var path = Seq.empty[(String, State)]
             var current_state = end_state
             while (current_state != entry_state) {
-              path :+ pred(current_state)
+              path = path :+ pred(current_state)
               current_state = pred(current_state)._2
             }
-            paths((entry_state, end_state)) = path
+            paths((entry_state, end_state)) = path.reverse
           }
         }
       }

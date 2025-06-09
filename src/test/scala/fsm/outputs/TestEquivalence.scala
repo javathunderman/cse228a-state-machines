@@ -8,10 +8,6 @@ import org.scalatest.BeforeAndAfterAll
 import java.io.File
 
 class FSMGenEquiv extends Module {
-    def stringToEnumOpt(s: String): Option[FSMGenOptTransition.Type] =
-        FSMGenOptTransition.all.find(_.toString == s)
-    def stringToEnumUnOpt(s: String): Option[FSMGenUnoptTransition.Type] =
-        FSMGenUnoptTransition.all.find(_.toString == s)
     val io = IO(new Bundle{
         val transition_unopt = Input(FSMGenUnoptTransition())
         val transition_opt = Input(FSMGenOptTransition())
@@ -27,10 +23,6 @@ class FSMGenEquiv extends Module {
 }
 
 class HostGenEquiv extends Module {
-    def stringToEnumOpt(s: String): Option[HostGenOptTransition.Type] =
-        HostGenOptTransition.all.find(_.toString == s)
-    def stringToEnumUnOpt(s: String): Option[HostGenUnoptTransition.Type] =
-        HostGenUnoptTransition.all.find(_.toString == s)
     val io = IO(new Bundle{
         val transition_unopt = Input(HostGenUnoptTransition())
         val transition_opt = Input(HostGenOptTransition())
@@ -46,6 +38,26 @@ class HostGenEquiv extends Module {
 }
 
 class TestEquivalence extends AnyFlatSpec with ChiselScalatestTester {
+    val enumStrRegex = raw"\=(.*)\)".r.unanchored
+    def stringToEnum(s: String, enumType: ChiselEnum) : Option[enumType.Type] =
+        enumType.all.map(x => x.toString()).zipWithIndex.foldLeft(Option.empty[enumType.Type]){case (acc, x) => x._1 match {
+            case enumStrRegex(enumStr) => {
+                if (enumStr == s) {
+                    Some(enumType.all(x._2))
+                } else {
+                    acc
+                }
+            }
+            case _ => println("error when parsing enum type names"); None
+        }
+    }
+    def enumToString(enumType: ChiselEnum#Type) : String = {
+        enumType.toString() match {
+            case enumStrRegex(enumStr) => enumStr
+            case _ => println("error when emitting enum type name"); ""
+        }
+    }
+    
     it should "step through the instantiated chisel design (unoptimized)" in {
         test(new FSMGenEquiv()) { dut =>
             dut.io.transition_unopt.poke(FSMGenUnoptTransition.moveToIntermediate)
@@ -56,18 +68,16 @@ class TestEquivalence extends AnyFlatSpec with ChiselScalatestTester {
         }
     }
     it should "prove equivalence over paths" in {
-        test(new FSMGenEquiv()) { dut => 
+        test(new HostGenEquiv()) { dut => 
             val graph = new fsm.FSMGraph("src/test/scala/fsm/test-dotfiles/host_extra_states.dot")
             val adj_list = graph.build_adj_list()    
             val paths = graph.path_bfs(adj_list)
-            for (path <- paths.keySet) { // entry and end state pair
-                for (i <- 0 until paths(path).length) {
-                    dut.io.transition_opt.poke(dut.stringToEnumOpt(paths(path)(i)._1).get)
-                    dut.io.transition_unopt.poke(dut.stringToEnumUnOpt(paths(path)(i)._1).get)
+            for (path <- paths.keySet) {
+                for (transitionStatePair <- paths(path)) {
+                    dut.io.transition_opt.poke(stringToEnum(transitionStatePair._1, HostGenOptTransition).get)
+                    dut.io.transition_unopt.poke(stringToEnum(transitionStatePair._1, HostGenUnoptTransition).get)
                     dut.clock.step()
-                    assert(dut.io.state_opt.peek() == dut.io.state_unopt.peek())
-                    assert(dut.io.state_opt.peek() == paths(path)(i)._2)
-                    // todo: Path is likely backwards, need to reverse and run through each of the paths
+                    assert(enumToString(dut.io.state_opt.peek()) == enumToString(dut.io.state_unopt.peek()))
                 }
             }
         }
