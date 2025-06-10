@@ -65,7 +65,7 @@ Completed:
     - Ensures transitions are taken and the states are updated as we expect
     - Rejects illegal transitions for a simple state machine
   - Generation of Chisel templates
-  - State reachbility analysis (via BFS) and pruning
+  - State reachability analysis (via BFS) and pruning
     - Equivalence between optimized/unoptimized FSM implementation proven for complex example
   - Dead/trap state detection
   - Parameterizable equivalence testing
