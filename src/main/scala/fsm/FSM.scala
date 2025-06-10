@@ -19,7 +19,7 @@ class FSM(val fsm_graph: FSMGraph) extends Module {
   for (i <- 0 until fsm_graph.statesTransitions._1.length) {
     when (io.in(i) && intState === transition_indices(i)._1.U) {
       intState := transition_indices(i)._2.U
-      printf(f"Took the transition ${transition_indices(i)._3}\n")
+      printf(f"Hardware generator: Took the transition ${transition_indices(i)._3}\n")
     }
   }
   io.out := intState

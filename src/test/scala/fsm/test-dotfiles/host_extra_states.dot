@@ -1,0 +1,55 @@
+digraph host_fsm {
+    S10 [label="ENTRY"];
+    S11 [label="Established Communication"];
+    S12 [label="Standby"];
+    S13 [label="Service"]; /*any testing here*/
+    S14 [label = "HV Power On"]; /*check mag contactor state, if off then turn on otherwise only flip run enable*/
+    S15 [label = "HV Testing"]; /* High voltage service */
+    S16 [label = "Initialize"]; /*Standby but for HV*/
+    S17 [label = "Pressurize"]; /*start motor*/
+    S18 [label = "Steering Adjustments"];
+    S19 [label = "Bore Phase I"]; /*turn on cutterhead and start actuating the jacks*/
+    S24 [label = "Bore Phase II"]; /*start the auger motor, we should be moving forward in the dirt now*/
+    S20 [label = "System Pause"]; /*pause system, eligible for manual commands*/
+    S21 [label = "Final Routine Stop"]; /*see ops doc*/
+    S22 [label = "Final ESTOP"]; /*see ops doc*/
+    S23 [label = "Nonsense unreachable state"];
+    S27 [label = "nonsense unreachable state 2"];
+    S25 [label = "accessible but dead state"];
+
+
+    S10 -> S11 [label= " "];
+    S11 -> S12 [label="INIT"];
+    S12 -> S13 [label="Enter Service"];
+    S13 -> S12 [label = "Revert to Standby"];
+    S12 -> S14 [label="Start HV"];
+    S14 -> S16 [label = "To Initialize "];
+    S16 -> S15 [label = "To HV Testing"];
+    S15 -> S16 [label = "To Initialize"];
+    S16 -> S17 [label = "Start Pressurizing"];
+    S17 -> S18 [label = "Main Line at 3000 PSI"];
+    S18 -> S19 [label = "Begin Bore Phase I"];
+    S19 -> S24 [label = "Jacks at 1 foot"];
+    S19 -> S20 [label = "Pause System"];
+    S20 -> S19 [label = "Resume Boring Phase I"];
+    S24 -> S20 [label = "Pause System"];
+    S20 -> S24 [label = "Resume Boring Phase II"];
+    S24 -> S21 [label = "Actuators Fully Extended"];
+    S22 -> S13 [label = "Enter Service"];
+    S21 -> S14 [label = "Start HV"];
+    S10 -> S25 [label = "dead transition"];
+
+
+    S11 -> S22 [label = "Fault Encountered"];
+    S12 -> S22 [label = "Fault Encountered"];
+    S13 -> S22 [label = "Fault Encountered"];
+    S14 -> S22 [label = "Fault Encountered"];
+    S15 -> S22 [label = "Fault Encountered"];
+    S16 -> S22 [label = "Fault Encountered"];
+    S17 -> S22 [label = "Fault Encountered"];
+    S18 -> S22 [label = "Fault Encountered"];
+    S19 -> S22 [label = "Fault Encountered"];
+    S20 -> S22 [label = "Fault Encountered"];
+    S21 -> S22 [label = "Fault Encountered"];
+    S24 -> S22 [label = "Fault Encountered"];
+}
