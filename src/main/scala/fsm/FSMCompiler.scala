@@ -3,6 +3,7 @@ package fsm
 import java.io.{File, FileWriter, Writer}
 import scala.collection.mutable.ArrayBuffer
 
+// There might be a way to do this that is less verbose in Scala?
 abstract class ASTElem {
     val openLine : String = ""
     val parent : Option[ASTElem] = None
@@ -55,7 +56,7 @@ class FSMCompiler(val optimization: Boolean, module_name: String) {
     def build(graph: FSMGraph) : ArrayBuffer[ASTElem] = {
         // Check that states are reachable - warn if they are not
         val adj_list = graph.build_adj_list()
-        val unreachable_states = graph.reachability_bfs(adj_list)
+        val unreachable_states = graph.reachability_bfs()
         if (unreachable_states.size > 0) {
             println(s"Warning: Unreachable states ${unreachable_states}")
         }

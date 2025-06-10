@@ -4,7 +4,8 @@ import chisel3._
 import chiseltest._
 import chisel3.experimental.BundleLiterals._
 import org.scalatest.flatspec.AnyFlatSpec
-
+// Old tester for simple FSM hardware generator
+// See FSMCompilerTester and TestEquivalence for robust template verification/testing
 class FSMTester extends AnyFlatSpec with ChiselScalatestTester {
   it should "step through states in simple state machine" in {
     val fsm_graph = FSMGraph("src/test/scala/fsm/test-dotfiles/sample.dot")

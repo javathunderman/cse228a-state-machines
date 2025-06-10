@@ -7,6 +7,9 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.BeforeAndAfterAll
 import java.io.File
 
+// Hardware testing harnesses
+// Instantiate both the optimized and unoptimized versions of the FSM
+// Should be semantically equivalent
 class FSMGenEquiv extends Module {
     val io = IO(new Bundle{
         val transition_unopt = Input(FSMGenUnoptTransition())
@@ -39,6 +42,7 @@ class HostGenEquiv extends Module {
 
 class TestEquivalence extends AnyFlatSpec with ChiselScalatestTester {
     val enumStrRegex = raw"\=(.*)\)".r.unanchored
+    // given a String, match the enum name to the right type
     def stringToEnum(s: String, enumType: ChiselEnum) : Option[enumType.Type] =
         enumType.all.map(x => x.toString()).zipWithIndex.foldLeft(Option.empty[enumType.Type]){case (acc, x) => x._1 match {
             case enumStrRegex(enumStr) => {
@@ -51,7 +55,8 @@ class TestEquivalence extends AnyFlatSpec with ChiselScalatestTester {
             case _ => println("error when parsing enum type names"); None
         }
     }
-    def enumToString(enumType: ChiselEnum#Type) : String = {
+    def enumToString(enumType: ChiselEnum#Type) : String = { // I did not know Scala could do this but that's cool
+        // Extract just the relevant part of the enumType's name
         enumType.toString() match {
             case enumStrRegex(enumStr) => enumStr
             case _ => println("error when emitting enum type name"); ""
@@ -67,11 +72,11 @@ class TestEquivalence extends AnyFlatSpec with ChiselScalatestTester {
             dut.io.state_opt.expect(FSMGenOptState.Intermediate)
         }
     }
-    it should "prove equivalence over paths" in {
+    it should "prove equivalence over paths in the host state machine (with unreachable/dead states)" in {
         test(new HostGenEquiv()) { dut => 
             val graph = new fsm.FSMGraph("src/test/scala/fsm/test-dotfiles/host_extra_states.dot")
             val adj_list = graph.build_adj_list()    
-            val paths = graph.path_bfs(adj_list)
+            val paths = graph.path_bfs()
             for (path <- paths.keySet) {
                 for (transitionStatePair <- paths(path)) {
                     dut.io.transition_opt.poke(stringToEnum(transitionStatePair._1, HostGenOptTransition).get)

@@ -28,36 +28,7 @@ case class FSMGraph(val filePath: String) {
   { 
     case ((accTransitions, accStates), line) => 
       if (line contains "->") {
-        line match {
-          case transitionRegExp(sourceStateStr, destStateStr, transitionLabel) => {
-            val sourceDestStateTuple : (Option[State], Option[State]) = accStates.foldLeft((Option.empty[State], Option.empty[State])) {
-              case ((foundSrcState, foundDstState), currState) => {
-                if ((currState.name == sourceStateStr.strip()) && (currState.name == destStateStr.strip())) {
-                  (Some(currState), Some(currState))
-                } else if (currState.name == sourceStateStr.strip()) {
-                  (Some(currState), foundDstState)
-                } else if (currState.name == destStateStr.strip()) {
-                  (foundSrcState, Some(currState))
-                } else {
-                  (foundSrcState, foundDstState)
-                }
-              }
-            }
-            if (reservedKeywords.find(_ == transitionLabel) == None && transitionLabel != " ") {
-              (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel.replace(" ", "")), accStates)
-            } else {
-              // try to correct a transition name if it's a reserved keyword in scala
-              println("illegal transition name")
-              if (transitionLabel == " ") {
-                (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, s"${sourceDestStateTuple._1.get.name}to${sourceDestStateTuple._2.get.name}"), accStates)
-              } else {
-                (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, transitionLabel.replace(" ", "") + "_"), accStates)
-              }
-            }
-            
-          }
-          case _ => (accTransitions, accStates)
-        }
+        transition_construction(accStates, accTransitions, line)
       } else {
           line match {
             case stateRegExp(name, label) => {
@@ -78,6 +49,39 @@ case class FSMGraph(val filePath: String) {
           }
       }
   }
+
+  def transition_construction(accStates: Seq[State], accTransitions: Seq[Transition], line: String): (Seq[Transition], Seq[State]) =
+    line match {
+      case transitionRegExp(sourceStateRaw, destStateRaw, transitionLabel) => {
+        val sourceStateStr = sourceStateRaw.strip()
+        val destStateStr = destStateRaw.strip()
+        val sourceDestStateTuple : (Option[State], Option[State]) = accStates.foldLeft((Option.empty[State], Option.empty[State])) {
+          case ((foundSrcState, foundDstState), currState) => {
+            if ((currState.name == sourceStateStr) && (currState.name == destStateStr)) {
+              (Some(currState), Some(currState)) // self-loop
+            } else if (currState.name == sourceStateStr) {
+              (Some(currState), foundDstState) // found just the source state
+            } else if (currState.name == destStateStr) {
+              (foundSrcState, Some(currState)) // found just the destination state
+            } else {
+              (foundSrcState, foundDstState) // neither source nor dest state matched
+            }
+          }
+        }
+        var usableTransitionLabel = transitionLabel
+        if (usableTransitionLabel == " ") {
+          println(s"Empty transition label between ${sourceDestStateTuple._1.get.name} and ${sourceDestStateTuple._2.get.name}")
+          usableTransitionLabel = s"${sourceDestStateTuple._1.get.name}to${sourceDestStateTuple._2.get.name}"
+        } else if (reservedKeywords.find(_ == usableTransitionLabel) != None) {
+          println(s"Illegal transition label $usableTransitionLabel, appending _")
+          usableTransitionLabel += "_"
+        }
+        usableTransitionLabel = usableTransitionLabel.replace(" ", "")
+        (accTransitions :+ new Transition(sourceDestStateTuple._1.get, sourceDestStateTuple._2.get, usableTransitionLabel), accStates)
+      }
+      case _ => (accTransitions, accStates)
+    }
+
   def build_adj_list() = {
     final_states.addAll(statesTransitions._2.filter(x => x.state_type == StateType.EndState))
     entry_states.addAll(statesTransitions._2.filter(x => x.state_type == StateType.EntryState))
@@ -91,7 +95,8 @@ case class FSMGraph(val filePath: String) {
     adj_list_map
   }
 
-  def bfs(adj_list_map: HashMap[State, Seq[(String, State)]], start: Option[State], dest: Option[State]) : Option[Either[HashSet[State], HashMap[State, (String, State)]]] = {
+  // Standard BFS algorithm (adapted from CSE201)
+  def bfs(start: Option[State], dest: Option[State]) : Option[Either[HashSet[State], HashMap[State, (String, State)]]] = {
     val visited = HashSet.empty[State]
     val pred = HashMap.empty[State, (String, State)]
     if (adj_list_map.size == 0) {
@@ -114,22 +119,25 @@ case class FSMGraph(val filePath: String) {
             queue.addOne(v._2)
             pred.addOne(v._2, (v._1, u))
             if (dest != None && dest.get == v._2) {
+              // if we are searching for a particular destination, return the predecessor tree
               return Some(Right(pred))
             }
           }
         }
       }
       if (dest == None) {
+        // if we are not looking for a destination, just return all visited nodes
         Some(Left(visited))
       } else {
+        // if we were looking for a destination, and didn't find it in the main loop, return nothing
         None
       }
     }
   }
 
-  def reachability_bfs(adj_list_map: HashMap[State, Seq[(String, State)]]) = {
+  def reachability_bfs() = {
     val visited_states = entry_states.foldLeft(HashSet.empty[State]){ case(acc, x) => {
-      val bfs_initial = bfs(adj_list_map, Some(x), None).get
+      val bfs_initial = bfs(Some(x), None).get
       bfs_initial match {
         case Left(visited) => acc.addAll(visited)
         case Right(predecessors) => acc
@@ -138,11 +146,11 @@ case class FSMGraph(val filePath: String) {
     statesTransitions._2.toSet.diff(visited_states)
   }
 
-  def path_bfs(adj_list_map: HashMap[State, Seq[(String, State)]]) = {
+  def path_bfs() = {
     val paths = HashMap.empty[(State, State), Seq[(String, State)]]
     for (entry_state <- entry_states) {
       for (end_state <- final_states) {
-        val path_se = bfs(adj_list_map, Some(entry_state), Some(end_state))
+        val path_se = bfs(Some(entry_state), Some(end_state))
         path_se match {
           case None => println(s"no path between ${entry_state} and ${end_state}")
           case Some(Left(visited)) => println("error while obtaining paths?")
@@ -161,7 +169,7 @@ case class FSMGraph(val filePath: String) {
     paths
   }
 
-  def dead_state_detection(adj_list_map: HashMap[State, Seq[(String, State)]]) : Set[State] = {
+  def dead_state_detection() : Set[State] = {
     val nonFinalStates = statesTransitions._2.toSet.diff(final_states) // get all the non-final states we could be stuck in
     val deadStates = nonFinalStates.foldLeft(Set.empty[State]){
       case (acc, x) => {
@@ -172,6 +180,6 @@ case class FSMGraph(val filePath: String) {
         }
       }
     }
-    deadStates.diff(reachability_bfs(adj_list_map))
+    deadStates.diff(reachability_bfs())
   }
 }
