@@ -2,6 +2,36 @@ Chisel State Machine Generator
 ==============================
 Generates Chisel hardware templates of Moore state machines given a Graphviz style DOT file. 
 
+### Files:
+- `FSM.scala`: Initial hardware generator (used more for proof of concept)
+  - `FSMTester`: Instantiates and steps through a simple FSM (in hardware)
+- `FSMModel`: Initial software model (used more for proof of concept)
+  - `FSMModelTester`: Instantiates and steps through a simple FSM (in software)
+- `FSMGraph`: Parsing framework and graph analysis
+  - Initially returns a set of States/Transitions (as defined within the file)
+  - Also has functions for:
+    - Building an adjacency list representation
+    - Performing BFS
+    - Reachability analysis
+    - Extracting all paths between entry and final states
+    - Dead state analysis
+  - `FSMGraphTester`: Just tests the set of transitions/states after parsing.  
+- `FSMCompiler`: Generates Chisel templates after parsing
+  - Build function: Takes a set of states/transitions, calls the adjacency list building function, and generates an AST of the Chisel template
+  - Contains small subclasses for each of the elements within the tree
+    - Opening line, set of child nodes in the AST, and closing line (allows for recursive code generation)
+  - Generate function: Writes the opening line, the children nodes, and closing line
+  - `FSMCompilerTester`
+    - `default_test` - checks that a Chisel file is generated without errors, and verifies correct # of unreachable/dead states
+    - `unopt_opt_test` - generates two Chisel files, one with optimization (unreachable state elimination) and one without. Subsequently diffs the generated files against a known safe version
+- `outputs/`
+  - `_default` files - used by `FSMCompilerTester` to diff against newly generated Chisel templates
+  - `TestEquivalence`
+    - Instantiates hardware harnesses with optimized/unoptimized versions of simple FSM example, and the host/global ops FSM example
+    - `enumToString` and `stringToEnum`: convert between String value and enum type of transition/state for each instantiated hardware component (relies on Scala type argument, `stringToEnum` is roughly analogous to Scala's built in `.getName` method on enums)
+    - One manual example (simple FSM), one complex example (host/global ops FSM example)
+      - Finds all paths and proves state equivalence between the two versions after each transition
+
 Running instructions
 ====================
 - Create a dotfile (sample given in tests directory)
@@ -40,6 +70,7 @@ Completed:
   - Dead/trap state detection
   - Parameterizable equivalence testing
 
-In progress:
-  - ~~Formal LTL models?~~
-  - ~~Mealy machine support (output state dependent on transition asserted + values)~~
+Potential future work:
+  - Formal LTL models?
+  - Mealy machine support (output state dependent on transition asserted + values)
+  - Boolean/logical operations within transition labels (e.g. raccoon example: `noise` and `noNoise` transitions could be `noise` and `!noise`)
